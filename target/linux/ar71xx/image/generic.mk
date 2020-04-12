@@ -477,6 +477,16 @@ define Device/weio
 endef
 TARGET_DEVICES += weio
 
+define Device/dn1004s
+  DEVICE_TITLE := EngelCast DN1004S
+  DEVICE_PACKAGES := kmod-usb-core kmod-usb2
+  BOARDNAME := DN1004S
+  IMAGE_SIZE := 16000k
+  CONSOLE := ttyATH0,115200
+  MTDPARTS := spi0.0:256k(u-boot)ro,64k(u-boot-env)ro,16000k(firmware),64k(art)ro
+endef
+TARGET_DEVICES += dn1004s
+
 define Device/gl-ar150
   DEVICE_TITLE := GL.iNet GL-AR150
   DEVICE_PACKAGES := kmod-usb-core kmod-usb2

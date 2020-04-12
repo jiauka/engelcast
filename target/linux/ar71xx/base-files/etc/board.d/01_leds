@@ -381,6 +381,11 @@ dlan-pro-1200-ac)
 	ucidef_set_led_gpio "plcw" "dLAN" "devolo:status:dlan" "17" "0"
 	ucidef_set_led_gpio "plcr" "dLAN" "devolo:error:dlan" "16" "0"
 	;;
+dn1004s)
+	ucidef_set_led_wlan "wlan" "WLAN" "$board:orange:wlan" "phy0tpt"
+	ucidef_set_led_netdev "wan" "WAN" "$board:green:wan" "eth0"
+	ucidef_set_led_netdev "lan" "LAN" "$board:green:lan" "eth1"
+	;;
 e1700ac-v2)
 	ucidef_set_led_usbdev "usb" "USB" "$board:green:usb" "1-1"
 	ucidef_set_led_wlan "wlan2g" "WLAN2G" "$board:green:wlan2g" "phy1tpt"

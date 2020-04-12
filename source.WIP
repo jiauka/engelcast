@@ -1,0 +1,95 @@
+git clone https://github.com/jiauka/engelcast.git
+cd engelcast
+#git checkout openwrt-19.07
+git checkout openwrt-18.06
+
+
+make distclean
+./scripts/feeds update -a
+./scripts/feeds install -a
+
+moded files:
+geany ./target/linux/ramips/base-files/etc/diag.sh ?
+geany ./target/linux/ar71xx/image/generic.mk
+geany ./target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+geany ./target/linux/ar71xx/files/arch/mips/ath79/Makefile
+geany ./target/linux/ar71xx/files/arch/mips/ath79/mach-dn1004s.c
+geany ./target/linux/ar71xx/files/arch/mips/ath79/Kconfig.openwrt
+geany ./target/linux/ar71xx/base-files/etc/uci-defaults/04_led_migration
+geany ./target/linux/ar71xx/base-files/etc/board.d/01_leds
+geany ./target/linux/ar71xx/base-files/etc/board.d/02_network
+geany ./target/linux/ar71xx/base-files/lib/ar71xx.sh
+geany ./target/linux/ar71xx/base-files/lib/upgrade/platform.sh
+geany ./target/linux/ar71xx/base-files/lib/upgrade/platform.sh platform_check_image()
+
+
+make defconfig
+make menuconfig
+
+
+Target System/Atheros AR7xxx/AR9xxx
+Target Profile/Roomycast DN1004S
+
+!Global build/Enable IPV6
+Base system/block-mount
+Luci/Collections/luci
+Luci/Modules/Translations/Catalan
+Luci/Modules/Translations/English
+Luci/Modules/Translations/Spanish
+Luci/Themes/luci-theme-material
+Network/fping
+Network/File Transfer/curl
+Network/File Transfer/wget
+Network/Firewall/iptables-mod-filter
+Network/rccast
+Network/roomy-repeater
+#Network/VPN/openvpn-openssl
+Network/ssh/openssh-sftp-server
+Utilities/jq
+#Utilities/dn1004s
+#Utilities/openssl-util
+Kernel modules/Filesystems/kmod-fs-msdos
+Kernel modules/Filesystems/kmod-fs-ntfs
+Kernel modules/Filesystems/kmod-fs-vfat
+Kernel modules/Netfilter Extensions/kmod-ipt-filter
+Kernel modules/usb/kmod-usb-storage
+
+
+make -j4
+or
+make -j1 V=s 
+
+
+#### 
+
+make package/libs/uclibc++/compile
+
+
+
+#### MODED FILES
+package/base-files/files/etc/banner (banner)
+package/base-files/files/bin/config_generate (initial ip) 
+package/base-files/files/etc/init.d/engelcast_init (initial wifi setup)
+package/network/config/firewall/files/firewall.config
+package/base-files/files/bin/config_generate (network)
+package/network/services/dnsmasq/files/dhcp.conf (dhcp)
+network/services/dnsmasq/files/dnsmasq.conf (add cript)
+
+### network is partially at
+/etc/board.json (generated from package/base-files/files/lib/functions/uci-defaults.sh)
+
+
+###
+./lib/functions.sh: ??? init /etc/shadow??
+
+curl -s -X POST -H "Content-Type: application/json" -d '{"name": "ENGELCAST"}' http://192.168.67.168:8008/setup/set_eureka_info
+curl -k -X POST -H "Content-Type: application/json" -H "Authorization: roomy.cast" -d '{"name": "ENGELCAST","settings":{"timezone":"Europe\/Madrid","time_format":2,"locale":"es"},"opt_in":{"stats":false}}' https://192.168.67.168:8443/setup/set_eureka_info
+
+
+## 
+make package/dn1004s/compile
+scp ./bin/packages/mips_24kc/base/dn1004s_0.01-1_mips_24kc.ipk root@192.168.67.1:/tmp
+
+opkg install  --force-overwrite --force-reinstall /tmp/dn1004s_0.01-1_mips_24kc.ipk 
+scp bin/packages/mips_24kc/packages/fping_4.0-2_mips_24kc.ipk root@192.168.67.1:/tmp
+

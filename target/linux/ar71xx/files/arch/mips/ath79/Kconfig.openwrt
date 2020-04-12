@@ -635,6 +635,17 @@ config ATH79_MACH_DLAN_PRO_1200_AC
 	select ATH79_DEV_NFC
 	select ATH79_DEV_USB
 
+config ATH79_MACH_DN1004S
+	bool "EngelCast DN1004S support"
+	select SOC_AR933X
+	select ATH79_DEV_ETH
+	select ATH79_DEV_GPIO_BUTTONS
+	select ATH79_DEV_LEDS_GPIO
+	select ATH79_DEV_M25P80
+	select ATH79_DEV_USB
+	select ATH79_DEV_WMAC
+
+
 config ATH79_MACH_DOMYWIFI_DW33D
 	bool "DomyWifi DW33D support"
 	select SOC_QCA955X

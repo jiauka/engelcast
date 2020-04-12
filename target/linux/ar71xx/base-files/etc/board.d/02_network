@@ -156,6 +156,7 @@ ar71xx_setup_interfaces()
 	a60|\
 	alfa-ap96|\
 	alfa-nx|\
+	dn1004s|\
 	dr344|\
 	gl-ar150|\
 	gl-ar300m|\

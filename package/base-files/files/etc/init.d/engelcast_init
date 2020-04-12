@@ -1,0 +1,166 @@
+#!/bin/sh /etc/rc.common
+
+START=10
+
+ddns=
+mac=
+nand=
+model=
+first_time=
+wifikey="12345678"
+
+check_firstime(){
+	old_ssid=$(uci get wireless.@wifi-iface[0].ssid 2>/dev/null)
+	old_mode=$(uci get wireless.@wifi-iface[0].mode 2>/dev/null)
+	echo "old_ssid=$old_ssid old_mode=$old_mode"
+	#set the default wireless config, only if not reserved config when update firmware
+	if [ "$old_mode" = "ap" ] && ( [ -z "$old_ssid" ] || [ "$old_ssid" = "GL" ] || [ "$old_ssid" = "OpenWrt" ] || [ "$old_ssid" = "LEDE" ] )
+	then
+		first_time=yes
+	fi
+}
+
+read_factory_data(){
+	#get basic device information
+	model=$(awk -F': ' '/machine/ {print tolower($NF)}' /proc/cpuinfo |cut -d- -f2-)
+	[ -n "$(grep "Domino Pi" /proc/cpuinfo)" ] && model="domino"
+	[ -n "$(grep "DK01" /proc/device-tree/model)" ] && model="b1300"
+	[ -n "$(grep "DN1004S" //proc/cpuinfo)" ] && model="dn1004s"
+
+	if [ "$model" = "connect inet v1" ]; then
+		model="iNet"
+		ddns=$(dd if=/dev/mtd0 bs=1 skip=$((0x1fc10)) count=7 2>/dev/null)
+	elif [ "$model" = "dn1004s" ] ||  [ "$model" = "ar150" ] || [ "$model" = "domino" ] || [ "$model" = "ar300" ] || [ "$model" = "ar300m" ] || [ "$model" = "ar750" ] || [ "$model" = "mifi" ]; then
+		nand=$(cat /proc/mounts |grep 'ubi0_1.*overlay')
+		art_mtd=$(cat /proc/mtd | awk -F: '/art/{print $1}')
+		ddns=$(dd if=/dev/$art_mtd bs=1 skip=$((0x10)) count=7 2>/dev/null)
+	elif [ "$model" = "mt300a" ] || [ "$model" = "mt300n" ] || [ "$model" = "mt750" ] || [ "$model" = "mt300n-v2" ]; then
+		ddns=$(dd if=/dev/mtd2 bs=1 skip=$((0x4010)) count=7 2>/dev/null)
+	elif [ "$model" = "b1300" ]; then
+		art_mtd=$(cat /proc/mtd | awk -F: '/0:ART/{print $1}')
+		ddns=$(dd if=/dev/$art_mtd bs=1 skip=$((0x10)) count=7 2>/dev/null)
+	fi
+	letter0=$(printf "%x" "'${ddns:0:1}")
+	letter5=$(printf "%x" "'${ddns:5:1}")
+
+	if [ "$letter0" = "ff" ]; then
+		mac=DEADBEEF
+	elif [ "$letter5" = "ff" ]; then
+		mac=${ddns:2:3}
+	else
+		mac=${ddns:4:3}
+	fi
+
+	#upper case all model
+	if [ "$model" != "iNet" ]; then
+		model=$(echo $model | awk '{ print toupper($1); }')
+	fi
+}
+
+fix_ssid_24g(){
+	#new ssid format
+	ssid_prefix="EngelCast"
+	ssid=${ssid_prefix}"-"${mac}
+
+	device=$1
+	index=$2
+	uci set wireless.$device.hwmode='11ng'
+	uci delete wireless.$device.disabled
+	uci set wireless.@wifi-iface[$index].ssid=$ssid
+	uci set wireless.@wifi-iface[$index].encryption=psk2
+	uci set wireless.@wifi-iface[$index].key=$wifikey
+#	uci set wireless.@wifi-iface[$index].wds=1
+	uci set wireless.@wifi-iface[$index].network=wifi$index
+	uci set wireless.@wifi-iface[$index].isolate=1
+
+#	[ "$model" != "B1300" ] && uci set wireless.@wifi-iface[$index].ifname=wlan$index
+
+	case "$model" in
+		"dn1004s" )
+			uci set wireless.$device.txpower='18'
+			;;
+		*)
+	esac
+}
+
+fix_ssid(){
+
+	i=0
+	while [ "$i" -le "10" ]; do
+		device=$(uci get wireless.@wifi-iface[$i].device)
+		if [ -z "$device" ]; then
+			break
+		fi
+		fix_ssid_24g $device $i
+		i=$((i+1))
+	done
+
+	uci commit wireless
+}
+show_ssid(){
+
+	#new ssid format
+	ssid_prefix="EngelCast"
+	ssid=${ssid_prefix}"-"${mac}
+
+	old_wanhost=$(uci get network.wan.hostname)
+	old_lanip=$(uci get network.lan.ipaddr)
+
+	if [ -z "$old_wanhost" ]; then
+        old_lanip="192.168.67.1"
+	fi
+	echo $old_lanip/$ssid:$wifikey
+}
+
+fix_sys(){
+	#configure network settings; don't do it when upgraded
+
+	uci set network.lan.hostname="$ssid"
+	old_wanhost=$(uci get network.wan.hostname)
+	old_lanip=$(uci get network.lan.ipaddr)
+	if [ -z "$old_wanhost" ]; then
+		if [ "$old_wanhost" = $ssid_prefix ] || [ -z "$old_wanhost" ]; then
+			uci set network.wan.hostname="$ssid"
+		fi
+		uci set system.@system[0].hostname="$ssid_prefix"
+		uci commit system
+		uci set samba.@samba[0].name="$ssid_prefix"
+		uci set samba.@samba[0].description="$ssid"
+		uci commit samba
+        uci set network.lan.ipaddr="192.168.67.1"
+        uci delete network.wifi0
+        uci set network.wifi0="interface"
+        uci set network.wifi0.ipaddr="192.168.60.1"
+        uci set network.wifi0.proto="static"
+        uci set network.wifi0.netmask="255.255.255.0"
+		uci commit network
+        uci set luci.main.lang='es'
+        uci commit luci
+
+	fi
+}
+
+start(){
+	#fixme: when this script executed, wireless configuration was not built, we need to wait a little bit.
+	while [ ! -e "/etc/config/wireless" ]; do
+		echo "---Warning: wireless was not built, wait and try... " > /dev/console
+		sleep 2
+	done
+
+	check_firstime
+	read_factory_data
+	if [ -n "$first_time" ]; then
+		echo "first_time"
+		fix_ssid
+		fix_sys
+		sync
+		wifi
+	fi
+	#make this run if upgrade from old version and reserved settings
+	/etc/init.d/engelcast_init disable
+}
+
+show(){
+	read_factory_data
+	show_ssid
+}

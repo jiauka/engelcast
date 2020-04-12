@@ -49,6 +49,8 @@ dir-825-c1|\
 dir-835-a1)
 	migrate_leds ":orange:=:amber:" ":wifi_bgn=:wlan2g"
 	;;
+dn1004s)
+	migrate_leds "dn1004s:wlan=dn1004s:orange:wlan" "dn1004s:lan=dn1004s:green:lan" "dn1004s:wan=dn1004s:green:wan"
 dr344)
 	migrate_leds ":red:=:green:" ":yellow:=:green:"
 	;;
