@@ -1,5 +1,18 @@
 #!/bin/sh
 
+getccdisabled () {
+	if [ -z $1 ]; then
+		return 
+	fi
+	DISABLED=`uci show dhcp.@host[$1].disabled | cut -d '=' -f 2 |tr -d "'" 2>/dev/null`
+	if [ -z $DISABLED ]; then
+		echo 0
+		return 0
+	fi
+	echo $DISABLED
+	return 0
+}
+
 #get number of active cc
 getnumberofcc () {
     echo "1"

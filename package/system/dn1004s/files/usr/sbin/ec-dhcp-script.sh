@@ -1,8 +1,9 @@
 #!/bin/sh
 . /usr/sbin/ec-functions.sh
-logger "[$0] $LINENO $1 $2 $3 $4 $DNSMASQ_SUPPLIED_HOSTNAME" 
+#logger "[$0] $LINENO $1 $2 $3 $4 $DNSMASQ_SUPPLIED_HOSTNAME" 
 NUMBEROFFC=$(getnumberofcc)
-if [ "$DNSMASQ_SUPPLIED_HOSTNAME" == "Chromecast" ]; 
+curl -m 1 -s http://$3:8008/ssdp/device-desc.xml >/dev/null
+if [ $? -eq 0 ] || [ "$DNSMASQ_SUPPLIED_HOSTNAME" == "Chromecast" ]; 
 	then
 	replaceMAC $2 $3
 	ID=$(findMAC $2)

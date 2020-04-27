@@ -17,9 +17,7 @@ start() {
 		DISABLED=$(getccdisabled $ID)
 		if [ "x$DISABLED" = "x0" ]; then
 			if [ "x$CCIP" != "x0.0.0.0" ]; then
-				IDD=$((ID+1))
-#				WIFIID="wifi$IDD"
-                WIFIID=`uci get wireless.@wifi-iface[$IDD].network |cut -d ' ' -f 1`      
+                WIFIID=`uci get wireless.@wifi-iface[$ID].network |cut -d ' ' -f 1`      
 				DEVICEID=`ifstatus $WIFIID|grep "\"device\"" |cut -d ':' -f 2|tr -d '", '`
                 if [ "x$DEVICEID" = "x"  ] && [ "x$ISSUITE" = "x1" ]; then
                     DEVICEID="wlan0-$ID"
